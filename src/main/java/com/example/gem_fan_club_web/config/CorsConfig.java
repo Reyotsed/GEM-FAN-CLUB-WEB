@@ -26,6 +26,7 @@ public class CorsConfig implements WebMvcConfigurer {
                 registry.addMapping("/**")
                         .allowedOrigins(
                                 "http://140.143.246.54:5173",
+                                "http://gemfanclub.com",
                                 "https://gemfanclub.com",
                                 "https://www.gemfanclub.com"
                         )
