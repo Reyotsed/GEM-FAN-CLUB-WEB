@@ -72,6 +72,12 @@ public class QuoteController {
         return new ResponseDTO(200,"success",quoteService.isLiked(quoteId,userId));
     }
 
+    @GetMapping("/quoteDetail/{quoteId}")
+    public ResponseDTO getQuoteDetail(@PathVariable Long quoteId) {
+        Quote quote = quoteService.getQuoteById(quoteId);
+        return new ResponseDTO(200,"success",quote);
+    }
+
     @PostMapping("/upload")
     public ResponseDTO uploadQuote(
             @RequestParam("title") String content,

@@ -23,7 +23,7 @@ public class FileTools {
         String fileExtension = originalFilename.substring(originalFilename.lastIndexOf("."));
         String newFilename = UUID.randomUUID().toString() + fileExtension;
 
-        System.out.println(newFilename);
+//        System.out.println(newFilename);
         fullPath = Paths.get(fullPath, newFilename).toString();
         // 保存文件到本地
         File serverFile = new File(fullPath);

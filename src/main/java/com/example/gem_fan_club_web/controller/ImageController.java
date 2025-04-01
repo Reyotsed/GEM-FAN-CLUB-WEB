@@ -41,9 +41,9 @@ public class ImageController {
 
             // package的时候加上这一句：
             String normalizedPath = path.replaceAll("\\\\", "/");
-            System.out.println(uploadDir);
+//            System.out.println(uploadDir);
             Path filePath = Paths.get(uploadDir, path);
-            System.out.println(filePath);
+//            System.out.println(filePath);
             if (!Files.exists(filePath)) {
                 response.sendError(HttpServletResponse.SC_NOT_FOUND);
                 return;

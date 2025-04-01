@@ -90,4 +90,8 @@ public class QuoteService {
         quote.setCommentsCount(0);
         return quoteRepository.save(quote);
     }
+
+    public Quote getQuoteById(Long quoteId) {
+        return quoteRepository.findById(quoteId).orElse(null);
+    }
 }
