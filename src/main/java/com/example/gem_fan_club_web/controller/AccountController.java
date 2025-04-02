@@ -2,6 +2,7 @@ package com.example.gem_fan_club_web.controller;
 
 import com.example.gem_fan_club_web.constants.Constants;
 import com.example.gem_fan_club_web.model.ResponseDTO;
+import com.example.gem_fan_club_web.model.User;
 import com.example.gem_fan_club_web.redis.RedisService;
 import com.example.gem_fan_club_web.redis.RedisUtils;
 import com.example.gem_fan_club_web.service.UserService;
@@ -117,7 +118,11 @@ public class AccountController {
             if (StringTools.isEmpty(email)) {
                 return new ResponseDTO(501,"token失效",null);
             }else{
-                return new ResponseDTO(200,"success", userService.getUserByEmail(email));
+                User user = userService.getUserByEmail(email);
+                // 更新最后登录时间和IP
+                String ip = request.getRemoteAddr();
+                userService.updateLastLoginInfo(user, ip);
+                return new ResponseDTO(200,"success", user);
             }
         }else{
             return new ResponseDTO(501,"请求无token",null);

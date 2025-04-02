@@ -59,4 +59,10 @@ public class UserService {
     public void saveUser(User user) {
         userRepository.save(user);
     }
+
+    public void updateLastLoginInfo(User user, String ip) {
+        user.setLastLoginTime(new Date());
+        user.setLastLoginIp(ip);
+        userRepository.save(user);
+    }
 }

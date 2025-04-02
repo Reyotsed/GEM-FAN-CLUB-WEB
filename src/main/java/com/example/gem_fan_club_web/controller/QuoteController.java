@@ -3,7 +3,9 @@ package com.example.gem_fan_club_web.controller;
 import com.example.gem_fan_club_web.model.ResponseDTO;
 import com.example.gem_fan_club_web.model.quote.Quote;
 import com.example.gem_fan_club_web.model.quote.QuotePicture;
+import com.example.gem_fan_club_web.model.quote.QuoteComment;
 import com.example.gem_fan_club_web.service.QuoteService;
+import com.example.gem_fan_club_web.service.QuoteCommentService;
 import com.example.gem_fan_club_web.utils.AssertTools;
 import com.example.gem_fan_club_web.utils.FileTools;
 import jakarta.servlet.http.HttpServletRequest;
@@ -25,6 +27,9 @@ public class QuoteController {
 
     @Autowired
     private QuoteService quoteService;
+
+    @Autowired
+    private QuoteCommentService quoteCommentService;
 
     private FileTools fileTools = new FileTools();
 
@@ -98,5 +103,30 @@ public class QuoteController {
         }
 
         return new ResponseDTO(200,"success",null);
+    }
+
+    @GetMapping("/comments/{quoteId}")
+    public ResponseDTO getComments(@PathVariable Long quoteId) {
+        List<QuoteComment> comments = quoteCommentService.getCommentsByQuoteId(quoteId);
+        return new ResponseDTO(200, "success", comments);
+    }
+
+    @PostMapping("/comment")
+    public ResponseDTO addComment(@RequestBody CommentRequest request) {
+        QuoteComment comment = quoteCommentService.addComment(
+            Long.valueOf(request.getQuoteId()), 
+            request.getUserId(), 
+            request.getContent(),
+            request.getParentId() != null ? Long.valueOf(request.getParentId()) : null
+        );
+        return new ResponseDTO(200, "success", comment);
+    }
+
+    @Data
+    public static class CommentRequest {
+        private String quoteId;
+        private String userId;
+        private String content;
+        private String parentId;
     }
 }
