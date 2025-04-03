@@ -27,6 +27,7 @@ public class CorsConfig implements WebMvcConfigurer {
                         .allowedOrigins(
                                 "http://140.143.246.54:5173",
                                 "http://gemfanclub.com",
+                                "http://www.gemfanclub.com",
                                 "https://gemfanclub.com",
                                 "https://www.gemfanclub.com"
                         )
