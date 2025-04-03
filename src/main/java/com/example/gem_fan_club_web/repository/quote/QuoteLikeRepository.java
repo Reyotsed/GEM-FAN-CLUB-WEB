@@ -12,4 +12,8 @@ public interface QuoteLikeRepository extends JpaRepository<QuoteLike, Long> {
     void deleteByQuoteIdAndUserId(Long quoteId, String userId);
 
     QuoteLike findByQuoteIdAndUserId(Long quoteId, String userId);
+
+    @Modifying
+    @Transactional
+    void deleteByQuoteId(Long quoteId);
 }

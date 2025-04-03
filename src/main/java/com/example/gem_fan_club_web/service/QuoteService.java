@@ -91,7 +91,33 @@ public class QuoteService {
         return quoteRepository.save(quote);
     }
 
+    public List<Quote> getQuotesByUserId(String userId) {
+        return quoteRepository.findByUserIdOrderByCreatedAtDesc(userId);
+    }
+
     public Quote getQuoteById(Long quoteId) {
         return quoteRepository.findById(quoteId).orElse(null);
+    }
+
+    /**
+     * 删除语录及其相关数据
+     */
+    public void deleteQuote(Long quoteId) {
+        // 删除语录的点赞记录
+        quoteLikeRepository.deleteByQuoteId(quoteId);
+        
+        // 获取语录相关的图片ID
+        List<Long> pictureIds = quotePictureTagRepository.findPictureIdsByQuoteId(quoteId);
+        
+        // 删除语录和图片的关联关系
+        quotePictureTagRepository.deleteByIdQuoteId(quoteId);
+        
+        // 删除图片记录
+        if (!pictureIds.isEmpty()) {
+            quotePictureInfoRepository.deleteAllById(pictureIds);
+        }
+        
+        // 删除语录
+        quoteRepository.deleteById(quoteId);
     }
 }

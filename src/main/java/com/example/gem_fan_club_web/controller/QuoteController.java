@@ -122,6 +122,22 @@ public class QuoteController {
         return new ResponseDTO(200, "success", comment);
     }
 
+    @GetMapping("/userQuotes")
+    public ResponseDTO getUserQuotes(@RequestParam("userId") String userId) {
+        List<Quote> quotes = quoteService.getQuotesByUserId(userId);
+        return new ResponseDTO(200, "success", quotes);
+    }
+
+    @DeleteMapping("/delete/{quoteId}")
+    public ResponseDTO deleteQuote(@PathVariable Long quoteId) {
+        try {
+            quoteService.deleteQuote(quoteId);
+            return new ResponseDTO(200, "success", null);
+        } catch (Exception e) {
+            return new ResponseDTO(500, "删除失败: " + e.getMessage(), null);
+        }
+    }
+
     @Data
     public static class CommentRequest {
         private String quoteId;
