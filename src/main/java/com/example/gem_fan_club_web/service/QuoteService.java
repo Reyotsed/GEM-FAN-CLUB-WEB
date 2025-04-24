@@ -1,35 +1,36 @@
 package com.example.gem_fan_club_web.service;
 
-import com.example.gem_fan_club_web.model.Song;
 import com.example.gem_fan_club_web.model.quote.Quote;
 import com.example.gem_fan_club_web.model.quote.QuoteLike;
 import com.example.gem_fan_club_web.model.quote.QuotePicture;
 import com.example.gem_fan_club_web.model.quote.QuotePictureTag;
 import com.example.gem_fan_club_web.repository.quote.QuoteLikeRepository;
-import com.example.gem_fan_club_web.repository.quote.QuotePictureTagRepository;
 import com.example.gem_fan_club_web.repository.quote.QuotePictureRepository;
+import com.example.gem_fan_club_web.repository.quote.QuotePictureTagRepository;
 import com.example.gem_fan_club_web.repository.quote.QuoteRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.example.gem_fan_club_web.utils.FileTools;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.util.Date;
 import java.util.List;
+
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class QuoteService {
 
-    @Autowired
-    QuoteRepository quoteRepository;
-
-    @Autowired
-    private QuotePictureTagRepository quotePictureTagRepository;
-
-    @Autowired
-    private QuotePictureRepository quotePictureInfoRepository;
-
-    @Autowired
-    private QuoteLikeRepository quoteLikeRepository;
+    private final QuoteRepository quoteRepository;
+    private final QuotePictureTagRepository quotePictureTagRepository;
+    private final QuotePictureRepository quotePictureInfoRepository;
+    private final QuoteLikeRepository quoteLikeRepository;
+    private final FileTools fileTools;
 
     // 根据 quoteId 查找对应的图片
     public List<QuotePicture> getPicturesByQuoteId(Long quoteId) {
@@ -115,22 +116,31 @@ public class QuoteService {
     /**
      * 删除语录及其相关数据
      */
-    public void deleteQuote(Long quoteId) {
-        // 删除语录的点赞记录
-        quoteLikeRepository.deleteByQuoteId(quoteId);
-        
+    @Transactional
+    public void deleteQuote(Long id) {
         // 获取语录相关的图片ID
-        List<Long> pictureIds = quotePictureTagRepository.findPictureIdsByQuoteId(quoteId);
+        List<Long> pictureIds = quotePictureTagRepository.findPictureIdsByQuoteId(id);
+        
+        // 删除语录的点赞记录
+        quoteLikeRepository.deleteByQuoteId(id);
         
         // 删除语录和图片的关联关系
-        quotePictureTagRepository.deleteByIdQuoteId(quoteId);
+        quotePictureTagRepository.deleteByIdQuoteId(id);
         
-        // 删除图片记录
+        // 删除图片记录和文件
         if (!pictureIds.isEmpty()) {
+            List<QuotePicture> pictures = quotePictureInfoRepository.findAllById(pictureIds);
+            for (QuotePicture picture : pictures) {
+                try {
+                    fileTools.deleteFile(picture.getFilePath());
+                } catch (IOException e) {
+                    log.error("删除图片文件失败: {}", picture.getFilePath(), e);
+                }
+            }
             quotePictureInfoRepository.deleteAllById(pictureIds);
         }
         
         // 删除语录
-        quoteRepository.deleteById(quoteId);
+        quoteRepository.deleteById(id);
     }
 }
