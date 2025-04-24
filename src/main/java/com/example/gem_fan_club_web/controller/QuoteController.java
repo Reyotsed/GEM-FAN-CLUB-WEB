@@ -42,6 +42,12 @@ public class QuoteController {
         return new ResponseDTO(200,"success",quoteList);
     }
 
+    @PostMapping("/getMoreQuotes")
+    public ResponseDTO getMoreQuotes(@RequestBody MoreQuotesRequest request) {
+        List<Quote> quotes = quoteService.getMoreQuotes(request.getDisplayedIds(), request.getCount());
+        return new ResponseDTO(200, "success", quotes);
+    }
+
     @GetMapping("/quotePicture")
     public ResponseDTO quotePicture(
             @RequestParam("quoteId") String quoteId
@@ -144,5 +150,11 @@ public class QuoteController {
         private String userId;
         private String content;
         private String parentId;
+    }
+
+    @Data
+    public static class MoreQuotesRequest {
+        private List<Integer> displayedIds;
+        private Integer count;
     }
 }

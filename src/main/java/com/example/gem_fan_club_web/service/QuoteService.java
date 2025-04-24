@@ -10,6 +10,8 @@ import com.example.gem_fan_club_web.repository.quote.QuotePictureTagRepository;
 import com.example.gem_fan_club_web.repository.quote.QuotePictureRepository;
 import com.example.gem_fan_club_web.repository.quote.QuoteRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
@@ -77,6 +79,17 @@ public class QuoteService {
 
     public List<Quote> getAllQuote() {
         return quoteRepository.findAll();
+    }
+
+    /**
+     * 获取更多quotes（排除已显示的）
+     */
+    public List<Quote> getMoreQuotes(List<Integer> displayedIds, Integer count) {
+        Pageable pageable = PageRequest.of(0, count);
+        if (displayedIds == null || displayedIds.isEmpty()) {
+            return quoteRepository.findRandomQuotes(pageable);
+        }
+        return quoteRepository.findRandomQuotesExcluding(displayedIds, pageable);
     }
 
     // 添加一条quote
