@@ -1,14 +1,12 @@
 package com.example.gem_fan_club_web.controller;
 
-import com.example.gem_fan_club_web.model.ResponseDTO;
+import com.example.gem_fan_club_web.dto.ResponseDTO;
 import com.example.gem_fan_club_web.model.quote.Quote;
 import com.example.gem_fan_club_web.model.quote.QuotePicture;
 import com.example.gem_fan_club_web.model.quote.QuoteComment;
 import com.example.gem_fan_club_web.service.QuoteService;
 import com.example.gem_fan_club_web.service.QuoteCommentService;
-import com.example.gem_fan_club_web.utils.AssertTools;
 import com.example.gem_fan_club_web.utils.FileTools;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;

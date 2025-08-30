@@ -1,4 +1,4 @@
-package com.example.gem_fan_club_web.model;
+package com.example.gem_fan_club_web.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

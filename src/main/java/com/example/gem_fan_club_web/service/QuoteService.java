@@ -4,6 +4,8 @@ import com.example.gem_fan_club_web.model.quote.Quote;
 import com.example.gem_fan_club_web.model.quote.QuoteLike;
 import com.example.gem_fan_club_web.model.quote.QuotePicture;
 import com.example.gem_fan_club_web.model.quote.QuotePictureTag;
+import com.example.gem_fan_club_web.redis.RedisService;
+import com.example.gem_fan_club_web.redis.RedisUtils.QuotePictureListWrapper;
 import com.example.gem_fan_club_web.repository.quote.QuoteLikeRepository;
 import com.example.gem_fan_club_web.repository.quote.QuotePictureRepository;
 import com.example.gem_fan_club_web.repository.quote.QuotePictureTagRepository;
@@ -20,6 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.IOException;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 @Slf4j
 @Service
@@ -31,14 +35,53 @@ public class QuoteService {
     private final QuotePictureRepository quotePictureInfoRepository;
     private final QuoteLikeRepository quoteLikeRepository;
     private final FileTools fileTools;
+    private final RedisService redisService;
+    private final Executor asyncExecutor;
 
-    // 根据 quoteId 查找对应的图片
+    // 根据 quoteId 查找对应的图片（逻辑过期缓存）
     public List<QuotePicture> getPicturesByQuoteId(Long quoteId) {
-        // 获取所有与该 quoteId 关联的 pictureId
-        List<Long> pictureIds = quotePictureTagRepository.findPictureIdsByQuoteId(quoteId);
+        // 首先尝试从缓存获取
+        QuotePictureListWrapper cachedWrapper = redisService.getQuotePictureListCache(quoteId);
+        
+        if (cachedWrapper != null) {
+            // 缓存存在，检查是否过期
+            if (cachedWrapper.isExpired()) {
+                log.debug("缓存已过期，启动异步更新，quoteId: {}", quoteId);
+                // 异步更新缓存，避免阻塞当前请求
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        updateQuotePictureListCache(quoteId);
+                        log.debug("异步更新缓存完成，quoteId: {}", quoteId);
+                    } catch (Exception e) {
+                        log.error("异步更新缓存失败，quoteId: {}", quoteId, e);
+                    }
+                }, asyncExecutor);
+            } else {
+                log.debug("从缓存获取QuotePicture列表，quoteId: {}", quoteId);
+            }
+            // 返回缓存数据（即使过期也返回，保证可用性）
+            return cachedWrapper.getData();
+        }
 
-        // 根据 pictureIds 获取图片信息
-        return quotePictureInfoRepository.findAllById(pictureIds);
+        // 缓存未命中，从数据库获取并缓存
+        log.debug("缓存未命中，从数据库获取QuotePicture列表，quoteId: {}", quoteId);
+        return updateQuotePictureListCache(quoteId);
+    }
+
+    /**
+     * 更新QuotePicture列表缓存
+     */
+    private List<QuotePicture> updateQuotePictureListCache(Long quoteId) {
+        List<Long> pictureIds = quotePictureTagRepository.findPictureIdsByQuoteId(quoteId);
+        List<QuotePicture> pictures = quotePictureInfoRepository.findAllById(pictureIds);
+        
+        // 将结果存入缓存（逻辑过期）
+        if (!pictures.isEmpty()) {
+            redisService.setQuotePictureListCache(quoteId, pictures);
+            log.debug("QuotePicture列表缓存已更新，quoteId: {}", quoteId);
+        }
+        
+        return pictures;
     }
 
     // 为某个语录绑定图片
@@ -58,7 +101,13 @@ public class QuoteService {
                 quotePictureTag.setId(compositeKey);
                 quotePictureTagRepository.save(quotePictureTag);
             }
+            
+            // 缓存新创建的QuotePicture（逻辑过期）
+            redisService.setQuotePictureCache(quotePicture.getPictureId(), quotePicture);
         }
+        
+        // 清除相关的列表缓存，因为数据已更新
+        redisService.deleteQuotePictureListCache(quoteId);
     }
 
     // 添加like
@@ -133,12 +182,17 @@ public class QuoteService {
             for (QuotePicture picture : pictures) {
                 try {
                     fileTools.deleteFile(picture.getFilePath());
+                    // 清除相关缓存
+                    redisService.deleteQuotePictureCache(picture.getPictureId());
                 } catch (IOException e) {
                     log.error("删除图片文件失败: {}", picture.getFilePath(), e);
                 }
             }
             quotePictureInfoRepository.deleteAllById(pictureIds);
         }
+        
+        // 清除相关的列表缓存
+        redisService.deleteQuotePictureListCache(id);
         
         // 删除语录
         quoteRepository.deleteById(id);

@@ -1,6 +1,6 @@
 package com.example.gem_fan_club_web.controller;
 
-import com.example.gem_fan_club_web.model.ResponseDTO;
+import com.example.gem_fan_club_web.dto.ResponseDTO;
 import com.example.gem_fan_club_web.model.Song;
 import com.example.gem_fan_club_web.service.SongService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -8,11 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 

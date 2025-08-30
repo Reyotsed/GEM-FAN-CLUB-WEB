@@ -1,10 +1,9 @@
 package com.example.gem_fan_club_web.controller;
 
 import com.example.gem_fan_club_web.constants.Constants;
-import com.example.gem_fan_club_web.model.ResponseDTO;
+import com.example.gem_fan_club_web.dto.ResponseDTO;
 import com.example.gem_fan_club_web.model.User;
 import com.example.gem_fan_club_web.redis.RedisService;
-import com.example.gem_fan_club_web.redis.RedisUtils;
 import com.example.gem_fan_club_web.service.UserService;
 import com.example.gem_fan_club_web.utils.StringTools;
 import jakarta.servlet.http.Cookie;
@@ -18,7 +17,6 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/account")

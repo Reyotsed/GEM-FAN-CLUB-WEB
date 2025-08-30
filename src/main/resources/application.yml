@@ -27,7 +27,22 @@ spring:
       host: 127.0.0.1
       port: 6379
       timeout: 2000
+      lettuce:
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 5
+          max-wait: 1000ms
 project:
   root: ${user.dir}  # 获取当前项目的根目录
 file:
   upload-dir: ${project.root}/asserts
+
+ai:
+  service:
+    url: http://localhost:8000/chat_gem
+
+# 雪花算法配置
+snowflake:
+  worker-id: -1  # -1表示自动使用IP地址最后一段，也可以指定0-31的数字
+  data-center-id: 0

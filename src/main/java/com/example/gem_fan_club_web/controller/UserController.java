@@ -1,8 +1,7 @@
 package com.example.gem_fan_club_web.controller;
 
-import com.example.gem_fan_club_web.model.ResponseDTO;
+import com.example.gem_fan_club_web.dto.ResponseDTO;
 import com.example.gem_fan_club_web.model.User;
-import com.example.gem_fan_club_web.model.quote.Quote;
 import com.example.gem_fan_club_web.service.UserService;
 import com.example.gem_fan_club_web.utils.FileTools;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,7 +10,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.List;
 
 @RestController
 @RequestMapping("/user")

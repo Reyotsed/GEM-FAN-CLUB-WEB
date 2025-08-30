@@ -1,7 +1,7 @@
 package com.example.gem_fan_club_web.controller;
 
 import com.example.gem_fan_club_web.model.Concert;
-import com.example.gem_fan_club_web.model.ResponseDTO;
+import com.example.gem_fan_club_web.dto.ResponseDTO;
 import com.example.gem_fan_club_web.service.ConcertService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
