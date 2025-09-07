@@ -16,8 +16,10 @@ public class QuoteLike {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
-    private long quoteId;
+    @Column(name = "quote_id")
+    private Integer quoteId;
 
+    @Column(name = "user_id")
     private String userId;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
@@ -26,7 +28,7 @@ public class QuoteLike {
 
     boolean isActive;
 
-    public QuoteLike(Long quoteId, String userId) {
+    public QuoteLike(Integer quoteId, String userId) {
         this.quoteId = quoteId;
         this.userId = userId;
         this.createdAt = new Date();

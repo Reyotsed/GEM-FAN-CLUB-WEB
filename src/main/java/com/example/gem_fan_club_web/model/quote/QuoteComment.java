@@ -17,8 +17,10 @@ public class QuoteComment {
 
     private Long parentId;
 
-    private Long quoteId;
+    @Column(name = "quote_id")
+    private Integer quoteId;
 
+    @Column(name = "user_id")
     private String userId;
 
     @Column(columnDefinition = "text")

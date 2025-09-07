@@ -27,25 +27,25 @@ public class QuotePictureTag implements Serializable {
         private static final long serialVersionUID = 1L;
 
         @Column(name = "quote_id", nullable = false)
-        private Long quoteId;
+        private Integer quoteId;
 
         @Column(name = "picture_id", nullable = false)
-        private Long pictureId;
+        private Integer pictureId;
 
         // Getters and Setters
-        public Long getQuoteId() {
+        public Integer getQuoteId() {
             return quoteId;
         }
 
-        public void setQuoteId(Long quoteId) {
+        public void setQuoteId(Integer quoteId) {
             this.quoteId = quoteId;
         }
 
-        public Long getPictureId() {
+        public Integer getPictureId() {
             return pictureId;
         }
 
-        public void setPictureId(Long pictureId) {
+        public void setPictureId(Integer pictureId) {
             this.pictureId = pictureId;
         }
 

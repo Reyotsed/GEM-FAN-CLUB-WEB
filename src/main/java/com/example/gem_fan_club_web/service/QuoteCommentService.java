@@ -17,7 +17,7 @@ public class QuoteCommentService {
     /**
      * 添加评论
      */
-    public QuoteComment addComment(Long quoteId, String userId, String content, Long parentId) {
+    public QuoteComment addComment(Integer quoteId, String userId, String content, Long parentId) {
         QuoteComment comment = new QuoteComment();
         comment.setQuoteId(quoteId);
         comment.setUserId(userId);
@@ -32,7 +32,7 @@ public class QuoteCommentService {
     /**
      * 获取语录的评论列表
      */
-    public List<QuoteComment> getCommentsByQuoteId(Long quoteId) {
+    public List<QuoteComment> getCommentsByQuoteId(Integer quoteId) {
         return quoteCommentRepository.findByQuoteIdAndStatusOrderByCreatedAtDesc(quoteId, 1);
     }
 

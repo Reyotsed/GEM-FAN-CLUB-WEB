@@ -68,7 +68,7 @@ public class RedisService {
     /**
      * 设置单个QuotePicture缓存（逻辑过期），过期时间1小时
      */
-    public void setQuotePictureCache(int pictureId, QuotePicture quotePicture) {
+    public void setQuotePictureCache(Integer pictureId, QuotePicture quotePicture) {
         String key = Constants.REDIS_QUOTE_PICTURE_PREFIX + "single:" + pictureId;
         // 1小时 = 3600秒
         redisUtil.setQuotePictureWithLogicExpire(key, quotePicture, 3600);
@@ -77,7 +77,7 @@ public class RedisService {
     /**
      * 获取单个QuotePicture缓存（逻辑过期）
      */
-    public QuotePictureWrapper getQuotePictureCache(int pictureId) {
+    public QuotePictureWrapper getQuotePictureCache(Integer pictureId) {
         String key = Constants.REDIS_QUOTE_PICTURE_PREFIX + "single:" + pictureId;
         return redisUtil.getQuotePictureWithLogicExpire(key);
     }
@@ -85,7 +85,7 @@ public class RedisService {
     /**
      * 设置QuotePicture列表缓存（逻辑过期），过期时间1小时
      */
-    public void setQuotePictureListCache(Long quoteId, List<QuotePicture> quotePictures) {
+    public void setQuotePictureListCache(Integer quoteId, List<QuotePicture> quotePictures) {
         String key = Constants.REDIS_QUOTE_PICTURE_PREFIX + "list:" + quoteId;
         // 1小时 = 3600秒
         redisUtil.setQuotePictureListWithLogicExpire(key, quotePictures, 3600);
@@ -94,7 +94,7 @@ public class RedisService {
     /**
      * 获取QuotePicture列表缓存（逻辑过期）
      */
-    public QuotePictureListWrapper getQuotePictureListCache(Long quoteId) {
+    public QuotePictureListWrapper getQuotePictureListCache(Integer quoteId) {
         String key = Constants.REDIS_QUOTE_PICTURE_PREFIX + "list:" + quoteId;
         return redisUtil.getQuotePictureListWithLogicExpire(key);
     }
@@ -102,7 +102,7 @@ public class RedisService {
     /**
      * 删除单个QuotePicture缓存
      */
-    public void deleteQuotePictureCache(int pictureId) {
+    public void deleteQuotePictureCache(Integer pictureId) {
         String key = Constants.REDIS_QUOTE_PICTURE_PREFIX + "single:" + pictureId;
         redisUtil.delete(key);
     }
@@ -110,7 +110,7 @@ public class RedisService {
     /**
      * 删除QuotePicture列表缓存
      */
-    public void deleteQuotePictureListCache(Long quoteId) {
+    public void deleteQuotePictureListCache(Integer quoteId) {
         String key = Constants.REDIS_QUOTE_PICTURE_PREFIX + "list:" + quoteId;
         redisUtil.delete(key);
     }
@@ -144,7 +144,7 @@ public class RedisService {
     /**
      * 安全获取QuotePicture列表缓存，自动清理旧格式
      */
-    public QuotePictureListWrapper getQuotePictureListCacheSafely(Long quoteId) {
+    public QuotePictureListWrapper getQuotePictureListCacheSafely(Integer quoteId) {
         String key = Constants.REDIS_QUOTE_PICTURE_PREFIX + "list:" + quoteId;
         
         try {
@@ -165,7 +165,7 @@ public class RedisService {
     /**
      * 设置单个QuotePicture缓存（传统过期方式）
      */
-    public void setQuotePictureCacheWithExpire(int pictureId, QuotePicture quotePicture, long time, TimeUnit unit) {
+    public void setQuotePictureCacheWithExpire(Integer pictureId, QuotePicture quotePicture, long time, TimeUnit unit) {
         String key = Constants.REDIS_QUOTE_PICTURE_PREFIX + "single:" + pictureId;
         redisUtil.setQuotePicture(key, quotePicture, time, unit);
     }
@@ -173,7 +173,7 @@ public class RedisService {
     /**
      * 设置QuotePicture列表缓存（传统过期方式）
      */
-    public void setQuotePictureListCacheWithExpire(Long quoteId, List<QuotePicture> quotePictures, long time, TimeUnit unit) {
+    public void setQuotePictureListCacheWithExpire(Integer quoteId, List<QuotePicture> quotePictures, long time, TimeUnit unit) {
         String key = Constants.REDIS_QUOTE_PICTURE_PREFIX + "list:" + quoteId;
         redisUtil.setQuotePictureList(key, quotePictures, time, unit);
     }

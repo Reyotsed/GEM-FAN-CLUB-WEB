@@ -9,11 +9,11 @@ import org.springframework.data.jpa.repository.Modifying;
 public interface QuoteLikeRepository extends JpaRepository<QuoteLike, Long> {
     @Modifying
     @Transactional
-    void deleteByQuoteIdAndUserId(Long quoteId, String userId);
+    void deleteByQuoteIdAndUserId(Integer quoteId, String userId);
 
-    QuoteLike findByQuoteIdAndUserId(Long quoteId, String userId);
+    QuoteLike findByQuoteIdAndUserId(Integer quoteId, String userId);
 
     @Modifying
     @Transactional
-    void deleteByQuoteId(Long quoteId);
+    void deleteByQuoteId(Integer quoteId);
 }

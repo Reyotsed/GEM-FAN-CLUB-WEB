@@ -13,7 +13,7 @@ public class QuotePicture {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @JsonProperty("pictureId")
-    private int pictureId;
+    private Integer pictureId;
 
     @JsonProperty("filePath")
     private String filePath;

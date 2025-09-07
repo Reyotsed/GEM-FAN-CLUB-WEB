@@ -39,7 +39,7 @@ public class QuoteService {
     private final Executor asyncExecutor;
 
     // 根据 quoteId 查找对应的图片（逻辑过期缓存）
-    public List<QuotePicture> getPicturesByQuoteId(Long quoteId) {
+    public List<QuotePicture> getPicturesByQuoteId(Integer quoteId) {
         // 首先尝试从缓存获取
         QuotePictureListWrapper cachedWrapper = redisService.getQuotePictureListCache(quoteId);
         
@@ -71,8 +71,8 @@ public class QuoteService {
     /**
      * 更新QuotePicture列表缓存
      */
-    private List<QuotePicture> updateQuotePictureListCache(Long quoteId) {
-        List<Long> pictureIds = quotePictureTagRepository.findPictureIdsByQuoteId(quoteId);
+    private List<QuotePicture> updateQuotePictureListCache(Integer quoteId) {
+        List<Integer> pictureIds = quotePictureTagRepository.findPictureIdsByQuoteId(quoteId);
         List<QuotePicture> pictures = quotePictureInfoRepository.findAllById(pictureIds);
         
         // 将结果存入缓存（逻辑过期）
@@ -85,7 +85,7 @@ public class QuoteService {
     }
 
     // 为某个语录绑定图片
-    public void addPicture(List<String> filePathList, Long quoteId) {
+    public void addPicture(List<String> filePathList, Integer quoteId) {
         for (String filePath : filePathList) {
             QuotePicture quotePicture = new QuotePicture();
             quotePicture.setFilePath(filePath);
@@ -93,7 +93,7 @@ public class QuoteService {
 
             QuotePictureTag.QuotePictureTagId compositeKey = new QuotePictureTag.QuotePictureTagId();
             compositeKey.setQuoteId(quoteId);
-            compositeKey.setPictureId((long) quotePicture.getPictureId());
+            compositeKey.setPictureId(quotePicture.getPictureId()); // No casting needed!
 
             if (!quotePictureTagRepository.existsById(compositeKey)) {
                 // 保存 QuotePictureTag
@@ -111,19 +111,19 @@ public class QuoteService {
     }
 
     // 添加like
-    public void addLike(Long quoteId, String userId) {
+    public void addLike(Integer quoteId, String userId) {
         if(quoteLikeRepository.findByQuoteIdAndUserId(quoteId,userId) == null) {
             quoteLikeRepository.save(new QuoteLike(quoteId, userId));
         }
     }
 
     // 删除like
-    public void eraseLike(Long quoteId, String userId) {
+    public void eraseLike(Integer quoteId, String userId) {
         quoteLikeRepository.deleteByQuoteIdAndUserId(quoteId,userId);
     }
 
     // 查找like是否存在
-    public boolean isLiked(Long quoteId, String userId) {
+    public boolean isLiked(Integer quoteId, String userId) {
         return quoteLikeRepository.findByQuoteIdAndUserId(quoteId,userId) != null;
     }
 
@@ -158,7 +158,7 @@ public class QuoteService {
         return quoteRepository.findByUserIdOrderByCreatedAtDesc(userId);
     }
 
-    public Quote getQuoteById(Long quoteId) {
+    public Quote getQuoteById(Integer quoteId) {
         return quoteRepository.findById(quoteId).orElse(null);
     }
 
@@ -166,9 +166,9 @@ public class QuoteService {
      * 删除语录及其相关数据
      */
     @Transactional
-    public void deleteQuote(Long id) {
+    public void deleteQuote(Integer id) {
         // 获取语录相关的图片ID
-        List<Long> pictureIds = quotePictureTagRepository.findPictureIdsByQuoteId(id);
+        List<Integer> pictureIds = quotePictureTagRepository.findPictureIdsByQuoteId(id);
         
         // 删除语录的点赞记录
         quoteLikeRepository.deleteByQuoteId(id);

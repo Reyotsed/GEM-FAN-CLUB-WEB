@@ -12,9 +12,9 @@ import java.util.List;
 public interface QuotePictureTagRepository extends JpaRepository<QuotePictureTag, QuotePictureTag.QuotePictureTagId> {
 
     @Query("SELECT t.id.pictureId FROM QuotePictureTag t WHERE t.id.quoteId = :quoteId")
-    List<Long> findPictureIdsByQuoteId(@Param("quoteId") Long quoteId);
+    List<Integer> findPictureIdsByQuoteId(@Param("quoteId") Integer quoteId);
 
     @Modifying
     @Transactional
-    void deleteByIdQuoteId(Long quoteId);
+    void deleteByIdQuoteId(Integer quoteId);
 }

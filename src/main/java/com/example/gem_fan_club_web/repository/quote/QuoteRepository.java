@@ -8,7 +8,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-public interface QuoteRepository extends JpaRepository<Quote, Long> {
+public interface QuoteRepository extends JpaRepository<Quote, Integer> {
     List<Quote> findByUserIdOrderByCreatedAtDesc(String userId);
 
     @Query("SELECT q FROM Quote q ORDER BY FUNCTION('RAND')")

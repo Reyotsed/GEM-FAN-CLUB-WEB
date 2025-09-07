@@ -11,7 +11,7 @@ import java.util.List;
 public interface QuoteCommentRepository extends JpaRepository<QuoteComment, Long> {
     
     // 根据语录ID查询评论列表
-    List<QuoteComment> findByQuoteIdAndStatusOrderByCreatedAtDesc(Long quoteId, Integer status);
+    List<QuoteComment> findByQuoteIdAndStatusOrderByCreatedAtDesc(Integer quoteId, Integer status);
     
     // 根据父评论ID查询回复列表
     List<QuoteComment> findByParentIdAndStatusOrderByCreatedAtAsc(Long parentId, Integer status);

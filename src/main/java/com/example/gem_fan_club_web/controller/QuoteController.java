@@ -50,14 +50,14 @@ public class QuoteController {
     public ResponseDTO quotePicture(
             @RequestParam("quoteId") String quoteId
     ){
-        List<QuotePicture> pictureList =  quoteService.getPicturesByQuoteId(Long.valueOf(quoteId));
+        List<QuotePicture> pictureList =  quoteService.getPicturesByQuoteId(Integer.valueOf(quoteId));
 
         return new ResponseDTO(200,"success",pictureList);
     }
 
     @GetMapping("/addLike")
     public ResponseDTO addLike(
-            @RequestParam("quoteId") Long quoteId,
+            @RequestParam("quoteId") Integer quoteId,
             @RequestParam("userId") String userId
     ) {
         quoteService.addLike(quoteId,userId);
@@ -66,7 +66,7 @@ public class QuoteController {
 
     @GetMapping("/eraseLike")
     public ResponseDTO eraseLike(
-            @RequestParam("quoteId") Long quoteId,
+            @RequestParam("quoteId") Integer quoteId,
             @RequestParam("userId") String userId
     ) {
         quoteService.eraseLike(quoteId,userId);
@@ -75,14 +75,14 @@ public class QuoteController {
 
     @GetMapping("/isLiked")
     public ResponseDTO isLiked(
-            @RequestParam("quoteId") Long quoteId,
+            @RequestParam("quoteId") Integer quoteId,
             @RequestParam("userId") String userId
     ) {
         return new ResponseDTO(200,"success",quoteService.isLiked(quoteId,userId));
     }
 
     @GetMapping("/quoteDetail/{quoteId}")
-    public ResponseDTO getQuoteDetail(@PathVariable Long quoteId) {
+    public ResponseDTO getQuoteDetail(@PathVariable Integer quoteId) {
         Quote quote = quoteService.getQuoteById(quoteId);
         return new ResponseDTO(200,"success",quote);
     }
@@ -100,7 +100,7 @@ public class QuoteController {
 
             Quote quote = quoteService.addQuote(content,userId);
 
-            quoteService.addPicture(imagePaths, Long.valueOf(quote.getQuoteId()));
+            quoteService.addPicture(imagePaths, quote.getQuoteId());
 
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -110,7 +110,7 @@ public class QuoteController {
     }
 
     @GetMapping("/comments/{quoteId}")
-    public ResponseDTO getComments(@PathVariable Long quoteId) {
+    public ResponseDTO getComments(@PathVariable Integer quoteId) {
         List<QuoteComment> comments = quoteCommentService.getCommentsByQuoteId(quoteId);
         return new ResponseDTO(200, "success", comments);
     }
@@ -118,7 +118,7 @@ public class QuoteController {
     @PostMapping("/comment")
     public ResponseDTO addComment(@RequestBody CommentRequest request) {
         QuoteComment comment = quoteCommentService.addComment(
-            Long.valueOf(request.getQuoteId()), 
+            Integer.valueOf(request.getQuoteId()), 
             request.getUserId(), 
             request.getContent(),
             request.getParentId() != null ? Long.valueOf(request.getParentId()) : null
@@ -133,7 +133,7 @@ public class QuoteController {
     }
 
     @DeleteMapping("/delete/{quoteId}")
-    public ResponseDTO deleteQuote(@PathVariable Long quoteId) {
+    public ResponseDTO deleteQuote(@PathVariable Integer quoteId) {
         try {
             quoteService.deleteQuote(quoteId);
             return new ResponseDTO(200, "success", null);

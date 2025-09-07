@@ -1,5 +1,6 @@
 package com.example.gem_fan_club_web.model;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -26,6 +27,7 @@ public class Song {
 
     private String fileType;
 
+    @Column(length = 10000)
     private String lyrics;
 
     private String coverPath;

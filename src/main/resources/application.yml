@@ -7,6 +7,23 @@ spring:
       max-request-size: 15MB
   application:
     name: gem_fan_club_web
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        hbm2ddl:
+          auto: update
+        jdbc:
+          time_zone: GMT+8
+          batch_size: 20
+        dialect: org.hibernate.dialect.MySQLDialect
+        show_sql: false
+        order_inserts: true
+        order_updates: true
+    show-sql: false
   datasource:
     url: jdbc:mysql://127.0.0.1:3306/gem_fan_club?serverTimezone=GMT%2B8&useUnicode=true&characterEncoding=utf8&autoReconnect=true&allowMultiQueries=true&useSSL=false
     username: root
