@@ -1,24 +1,30 @@
 package com.example.gem_fan_club_web.service;
 
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.connection.stream.*;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Service;
-
-import java.time.LocalDateTime;
-import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.List;
-import org.springframework.data.domain.Range;
-
 import com.example.gem_fan_club_web.model.Order;
 import com.example.gem_fan_club_web.repository.OrderRepository;
+import jakarta.annotation.PreDestroy;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
+import org.springframework.data.redis.RedisSystemException;
+import org.springframework.data.redis.connection.stream.*;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Service;
+
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * 基于Redis Stream的订单异步处理服务
+ * 基于Redis Stream的订单异步处理服务 (重构版)
+ * 采用单一阻塞循环模式，具备高效率和强大的错误恢复能力。
  */
 @Slf4j
 @Service
@@ -26,16 +32,23 @@ public class OrderStreamService {
 
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
-
     @Autowired
     private OrderRepository orderRepository;
+    @Autowired
+    @Qualifier("asyncExecutor")
+    private Executor asyncExecutor;
 
     private static final String ORDER_STREAM_KEY = "gem_fan_club:order:stream";
     private static final String GROUP = "order_group";
+    // 消费者名称最好包含主机名/IP和端口，以保证在分布式环境中的唯一性
     private static final String CONSUMER = "order_consumer_" + System.getProperty("server.port", "7071");
 
+    private final AtomicBoolean running = new AtomicBoolean(false);
+    private Thread consumerThread; // 持有消费者线程的引用，以便在关闭时中断它
+
     /**
-     * 发送订单消息到Stream
+     * 发送订单消息到Stream。
+     * 生产者逻辑通常是正确的，保持不变。
      */
     public void sendOrderMessage(String orderId, String userId, String ticketId) {
         try {
@@ -44,202 +57,162 @@ public class OrderStreamService {
             messageMap.put("userId", userId);
             messageMap.put("ticketId", ticketId);
             messageMap.put("createTime", LocalDateTime.now().toString());
-            messageMap.put("status", "0");
+            // 订单状态等信息也应放入消息体
+            // messageMap.put("status", "0");
 
-            // 发送消息到Stream
             var messageId = stringRedisTemplate.opsForStream().add(ORDER_STREAM_KEY, messageMap);
-
-            log.info("订单消息发送到Stream成功，messageId: {}, orderId: {}, userId: {}, ticketId: {}", 
-                    messageId, orderId, userId, ticketId);
+            log.info("订单消息发送成功, Stream: '{}', MessageId: {}, OrderId: {}", ORDER_STREAM_KEY, messageId, orderId);
 
         } catch (Exception e) {
-            log.error("订单消息发送到Stream失败，orderId: {}, userId: {}, ticketId: {}", 
-                    orderId, userId, ticketId, e);
-        }
-    }
-
-    private boolean groupCreated = false;
-    
-    /**
-     * 确保消费者组存在（只创建一次）
-     */
-    private void ensureGroupExists() {
-        if (groupCreated) {
-            return;
-        }
-        
-        try {
-            // 检查Stream是否存在
-            if (!stringRedisTemplate.hasKey(ORDER_STREAM_KEY)) {
-                log.info("Stream {} 不存在，等待消息发送", ORDER_STREAM_KEY);
-                return;
-            }
-            
-            // 先尝试删除现有组（如果存在）
-            try {
-                stringRedisTemplate.opsForStream().destroyGroup(ORDER_STREAM_KEY, GROUP);
-                log.info("已删除现有消费者组 {}", GROUP);
-            } catch (Exception ignored) {
-                // 组不存在，忽略
-            }
-            
-            // 创建新组，从Stream开头读取所有消息
-            stringRedisTemplate.opsForStream().createGroup(ORDER_STREAM_KEY, ReadOffset.from("0"), GROUP);
-            groupCreated = true;
-            log.info("消费者组 {} 已创建，将从Stream开头读取所有消息", GROUP);
-        } catch (Exception e) {
-            log.error("创建消费者组失败", e);
+            log.error("订单消息发送到Stream失败, OrderId: {}", orderId, e);
         }
     }
 
     /**
-     * 定时消费订单消息：优先读取pending，再读新消息
+     * 应用启动后，启动消费者。
+     * 这是重构的核心，采用单一的、阻塞的循环。
      */
-    @Scheduled(fixedRate = 1000)
-    public void consumeOrderMessages() {
-        try {
-            // 检查Stream是否存在
-            if (!stringRedisTemplate.hasKey(ORDER_STREAM_KEY)) {
-                return; // Stream不存在，直接返回
-            }
-            
-            ensureGroupExists();
-            
-            if (!groupCreated) {
-                return; // 消费者组未创建，等待下次调度
-            }
-            
-            // 1) 先处理Pending消息（超时未确认的消息）
-            processPendingMessages();
-            
-            // 2) 再处理新消息
-            processNewMessages();
-            
-        } catch (org.springframework.dao.QueryTimeoutException e) {
-            log.warn("Redis 查询超时，将在下次调度时重试: {}", e.getMessage());
-        } catch (Exception e) {
-            log.error("消费订单消息异常", e);
-        }
-    }
+    @EventListener(ApplicationReadyEvent.class)
+    public void startConsumer() {
+        if (running.compareAndSet(false, true)) {
+            // 使用 Executor 来管理线程生命周期
+            asyncExecutor.execute(() -> {
+                consumerThread = Thread.currentThread(); // 获取当前线程引用
+                log.info("启动 Redis Stream 消费者: {}", CONSUMER);
 
-    /**
-     * 处理Pending消息（超时未确认的消息）
-     */
-    private void processPendingMessages() {
-        try {
-            // 获取pending消息列表
-            PendingMessages pendingMessages = stringRedisTemplate.opsForStream()
-                    .pending(ORDER_STREAM_KEY, Consumer.from(GROUP, CONSUMER), 
-                            Range.closed("0", "+"), 100); // 增加批次大小
-            
-            if (pendingMessages.isEmpty()) {
-                return;
-            }
-            
-            log.info("发现 {} 条Pending消息", pendingMessages.size());
-            
-            // 处理所有pending消息（不限制超时时间）
-            for (PendingMessage pendingMessage : pendingMessages) {
-                try {
-                    // 声明消息所有权，重新处理
-                    List<MapRecord<String, Object, Object>> claimedMessages = 
-                            stringRedisTemplate.opsForStream().claim(ORDER_STREAM_KEY, 
-                                    GROUP, CONSUMER, 
-                                    Duration.ofSeconds(0), // 立即声明
-                                    RecordId.of(pendingMessage.getIdAsString()));
-                    
-                    for (MapRecord<String, Object, Object> record : claimedMessages) {
-                        processOrderMessage(record);
+                // 启动时，先尝试创建一次组，为冷启动做准备
+                tryCreateGroup();
+
+                while (running.get() && !consumerThread.isInterrupted()) {
+                    try {
+                        Consumer consumer = Consumer.from(GROUP, CONSUMER);
+                        StreamOffset<String> streamOffset = StreamOffset.create(ORDER_STREAM_KEY, ReadOffset.from(">"));
+                        StreamReadOptions options = StreamReadOptions.empty()
+                                .count(10) // 每次最多拉取10条，提高吞吐量
+                                .block(Duration.ofSeconds(2)); // 关键：长阻塞等待，极大降低CPU和网络开销
+
+                        List<MapRecord<String, Object, Object>> records = stringRedisTemplate.opsForStream()
+                                .read(consumer, options, streamOffset);
+
+                        if (records == null || records.isEmpty()) {
+                            // 阻塞超时，没有新消息，继续下一次循环
+                            continue;
+                        }
+
+                        // 处理读取到的消息
+                        for (MapRecord<String, Object, Object> record : records) {
+                            processOrderMessage(record);
+                        }
+
+                    } catch (RedisSystemException e) {
+                        // 这是处理 NOGROUP 错误的关键！
+                        if (e.getCause() != null && e.getCause().getMessage().contains("NOGROUP")) {
+                            log.warn("消费者组 '{}' 不存在，可能已被删除。正在尝试重建...", GROUP);
+                            tryCreateGroup();
+                        } else {
+                            log.error("消费时发生Redis系统异常", e);
+                            sleepSilently(5000); // 发生其他错误时，短暂等待避免CPU空转
+                        }
+                    } catch (Exception e) {
+                        // 捕获所有其他异常，防止线程意外终止
+                        log.error("消费时发生未知异常", e);
+                        sleepSilently(5000);
                     }
-                } catch (Exception e) {
-                    log.error("处理Pending消息失败: {}", pendingMessage.getIdAsString(), e);
                 }
-            }
-        } catch (Exception e) {
-            log.error("处理Pending消息异常", e);
+                log.info("Redis Stream 消费者已停止: {}", CONSUMER);
+            });
         }
     }
 
     /**
-     * 处理新消息
+     * 尝试创建消费者组。
+     * 这个方法现在更加健壮，能处理组已存在和Stream不存在的情况。
      */
-    private void processNewMessages() {
+    private void tryCreateGroup() {
         try {
-            Consumer consumer = Consumer.from(GROUP, CONSUMER);
-            StreamOffset<String> streamOffset = StreamOffset.create(ORDER_STREAM_KEY, ReadOffset.from(">"));
-            StreamReadOptions options = StreamReadOptions.empty().count(100); // 增加批次大小
-
-            List<MapRecord<String, Object, Object>> records = stringRedisTemplate.opsForStream()
-                    .read(consumer, options, streamOffset);
-
-            if (records == null || records.isEmpty()) {
-                return;
+            // 使用 "0-0" 作为起始ID是创建组最可靠的方式
+            stringRedisTemplate.opsForStream().createGroup(ORDER_STREAM_KEY, ReadOffset.from("0-0"), GROUP);
+            log.info("消费者组 '{}' 在 Stream '{}' 上已创建或确认存在", GROUP, ORDER_STREAM_KEY);
+        } catch (RedisSystemException e) {
+            // 这是预期的异常，因为组可能已经存在
+            if (e.getCause() != null && e.getCause().getMessage().contains("BUSYGROUP")) {
+                log.info("消费者组 '{}' 已存在，无需创建", GROUP);
             }
-
-            log.info("读取到 {} 条新消息", records.size());
-
-            for (MapRecord<String, Object, Object> record : records) {
-                processOrderMessage(record);
+            // 另一个预期异常是Stream还不存在，等待生产者创建它
+            else if (e.getCause() != null && e.getCause().getMessage().contains("no such key")) {
+                 log.warn("Stream '{}' 尚不存在，将等待生产者自动创建...", ORDER_STREAM_KEY);
+                 sleepSilently(1000);
+            } else {
+                log.error("创建消费者组时发生未知错误", e);
             }
-        } catch (org.springframework.dao.QueryTimeoutException e) {
-            log.warn("Redis Stream 读取超时: {}", e.getMessage());
-            throw e; // 重新抛出，让上层处理
-        } catch (Exception e) {
-            log.error("读取 Stream 消息失败", e);
         }
     }
-    
+
     /**
-     * 处理单个订单消息
+     * 处理单个订单消息的业务逻辑
      */
     private void processOrderMessage(MapRecord<String, Object, Object> record) {
         try {
             Map<Object, Object> value = record.getValue();
             String orderId = (String) value.get("orderId");
-            String userId = (String) value.get("userId");
-            String ticketId = (String) value.get("ticketId");
-            String createTimeStr = (String) value.get("createTime");
-            String statusStr = (String) value.get("status");
 
-            // 检查订单是否已存在（幂等性检查）
             if (orderRepository.existsById(orderId)) {
-                log.info("订单已存在，跳过处理: {}", orderId);
-                // 直接ACK，避免重复处理
-                stringRedisTemplate.opsForStream().acknowledge(ORDER_STREAM_KEY, GROUP, record.getId());
+                log.warn("订单已存在，跳过重复处理并直接ACK。OrderId: {}", orderId);
+                acknowledgeMessage(record.getId());
                 return;
             }
-
+            
             Order order = Order.builder()
                     .id(orderId)
-                    .userId(userId)
-                    .ticketId(ticketId)
-                    .status(parseIntOrDefault(statusStr, 0))
-                    .createTime(parseDateTimeOrNow(createTimeStr))
+                    .userId((String) value.get("userId"))
+                    .ticketId((String) value.get("ticketId"))
+                    .status(0) // 假设0是初始状态
+                    .createTime(parseDateTimeOrNow((String) value.get("createTime")))
                     .build();
 
             orderRepository.save(order);
-
-            // ACK消息
-            stringRedisTemplate.opsForStream().acknowledge(ORDER_STREAM_KEY, GROUP, record.getId());
-            log.info("订单持久化成功并ACK，orderId: {}", orderId);
-        } catch (Exception ex) {
-            log.error("处理订单消息失败，recordId: {}", record.getId(), ex);
+            acknowledgeMessage(record.getId());
+            log.info("订单持久化成功并已ACK。OrderId: {}", orderId);
+            
+        } catch (Exception e) {
+            // 重要的：如果处理失败，不要ACK，让消息保留在队列中以便后续处理（例如通过XPENDING和XCLAIM）
+            log.error("处理订单消息失败，消息将保留待处理。RecordId: {}, OrderId: {}", record.getId(), record.getValue().get("orderId"), e);
         }
     }
-
-    private int parseIntOrDefault(String s, int def) {
-        try {
-            return Integer.parseInt(s);
-        } catch (Exception e) {
-            return def;
-        }
+    
+    private void acknowledgeMessage(RecordId recordId) {
+        stringRedisTemplate.opsForStream().acknowledge(ORDER_STREAM_KEY, GROUP, recordId);
     }
 
     private LocalDateTime parseDateTimeOrNow(String s) {
         try {
+            if (s == null) return LocalDateTime.now();
             return LocalDateTime.parse(s);
-        } catch (Exception e) {
+        } catch (DateTimeParseException e) {
+            log.warn("无法解析日期时间字符串 '{}'，使用当前时间代替", s);
             return LocalDateTime.now();
+        }
+    }
+    
+    private void sleepSilently(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            // 在休眠时被中断，需要重置中断状态，以便外层循环能正确退出
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    /**
+     * 应用关闭时，优雅地停止消费者线程。
+     */
+    @PreDestroy
+    public void shutdown() {
+        log.info("准备关闭 Redis Stream 消费者...");
+        running.set(false);
+        if (consumerThread != null && consumerThread.isAlive()) {
+            // 中断线程，这将导致阻塞的 read() 操作立即抛出异常，从而使循环能够退出
+            consumerThread.interrupt();
         }
     }
 }
