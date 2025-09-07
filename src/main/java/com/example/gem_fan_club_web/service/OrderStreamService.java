@@ -58,15 +58,37 @@ public class OrderStreamService {
         }
     }
 
+    private boolean groupCreated = false;
+    
     /**
-     * 每次执行前，确保消费者组存在
+     * 确保消费者组存在（只创建一次）
      */
     private void ensureGroupExists() {
+        if (groupCreated) {
+            return;
+        }
+        
         try {
-            // XGROUP CREATE stream group $ MKSTREAM
-            stringRedisTemplate.opsForStream().createGroup(ORDER_STREAM_KEY, ReadOffset.latest(), GROUP);
-        } catch (Exception ignored) {
-            // 组已存在会抛错，忽略
+            // 检查Stream是否存在
+            if (!stringRedisTemplate.hasKey(ORDER_STREAM_KEY)) {
+                log.info("Stream {} 不存在，等待消息发送", ORDER_STREAM_KEY);
+                return;
+            }
+            
+            // 先尝试删除现有组（如果存在）
+            try {
+                stringRedisTemplate.opsForStream().destroyGroup(ORDER_STREAM_KEY, GROUP);
+                log.info("已删除现有消费者组 {}", GROUP);
+            } catch (Exception ignored) {
+                // 组不存在，忽略
+            }
+            
+            // 创建新组，从Stream开头读取所有消息
+            stringRedisTemplate.opsForStream().createGroup(ORDER_STREAM_KEY, ReadOffset.from("0"), GROUP);
+            groupCreated = true;
+            log.info("消费者组 {} 已创建，将从Stream开头读取所有消息", GROUP);
+        } catch (Exception e) {
+            log.error("创建消费者组失败", e);
         }
     }
 
@@ -75,12 +97,24 @@ public class OrderStreamService {
      */
     @Scheduled(fixedRate = 1000)
     public void consumeOrderMessages() {
-        ensureGroupExists();
         try {
-            // 1) 先处理Pending（只处理超时的消息）
-            readAndHandlePending();
+            // 检查Stream是否存在
+            if (!stringRedisTemplate.hasKey(ORDER_STREAM_KEY)) {
+                return; // Stream不存在，直接返回
+            }
+            
+            ensureGroupExists();
+            
+            if (!groupCreated) {
+                return; // 消费者组未创建，等待下次调度
+            }
+            
+            // 1) 先处理Pending消息（超时未确认的消息）
+            processPendingMessages();
+            
             // 2) 再处理新消息
-            readAndHandle(ReadOffset.lastConsumed());
+            processNewMessages();
+            
         } catch (org.springframework.dao.QueryTimeoutException e) {
             log.warn("Redis 查询超时，将在下次调度时重试: {}", e.getMessage());
         } catch (Exception e) {
@@ -89,33 +123,36 @@ public class OrderStreamService {
     }
 
     /**
-     * 处理Pending消息（只处理超时的消息）
+     * 处理Pending消息（超时未确认的消息）
      */
-    private void readAndHandlePending() {
+    private void processPendingMessages() {
         try {
             // 获取pending消息列表
             PendingMessages pendingMessages = stringRedisTemplate.opsForStream()
                     .pending(ORDER_STREAM_KEY, Consumer.from(GROUP, CONSUMER), 
-                            Range.closed("0", "+"), 10);
+                            Range.closed("0", "+"), 100); // 增加批次大小
             
             if (pendingMessages.isEmpty()) {
                 return;
             }
             
-            // 只处理超时的消息（超过30秒）
+            log.info("发现 {} 条Pending消息", pendingMessages.size());
+            
+            // 处理所有pending消息（不限制超时时间）
             for (PendingMessage pendingMessage : pendingMessages) {
-                Duration elapsedTime = pendingMessage.getElapsedTimeSinceLastDelivery();
-                if (elapsedTime.toMillis() > 30000) { // 超过30秒
+                try {
                     // 声明消息所有权，重新处理
                     List<MapRecord<String, Object, Object>> claimedMessages = 
                             stringRedisTemplate.opsForStream().claim(ORDER_STREAM_KEY, 
                                     GROUP, CONSUMER, 
-                                    Duration.ofSeconds(30), 
+                                    Duration.ofSeconds(0), // 立即声明
                                     RecordId.of(pendingMessage.getIdAsString()));
                     
                     for (MapRecord<String, Object, Object> record : claimedMessages) {
                         processOrderMessage(record);
                     }
+                } catch (Exception e) {
+                    log.error("处理Pending消息失败: {}", pendingMessage.getIdAsString(), e);
                 }
             }
         } catch (Exception e) {
@@ -123,11 +160,14 @@ public class OrderStreamService {
         }
     }
 
-    private void readAndHandle(ReadOffset readOffset) {
+    /**
+     * 处理新消息
+     */
+    private void processNewMessages() {
         try {
             Consumer consumer = Consumer.from(GROUP, CONSUMER);
-            StreamOffset<String> streamOffset = StreamOffset.create(ORDER_STREAM_KEY, readOffset);
-            StreamReadOptions options = StreamReadOptions.empty().count(10);
+            StreamOffset<String> streamOffset = StreamOffset.create(ORDER_STREAM_KEY, ReadOffset.from(">"));
+            StreamReadOptions options = StreamReadOptions.empty().count(100); // 增加批次大小
 
             List<MapRecord<String, Object, Object>> records = stringRedisTemplate.opsForStream()
                     .read(consumer, options, streamOffset);
@@ -135,6 +175,8 @@ public class OrderStreamService {
             if (records == null || records.isEmpty()) {
                 return;
             }
+
+            log.info("读取到 {} 条新消息", records.size());
 
             for (MapRecord<String, Object, Object> record : records) {
                 processOrderMessage(record);

@@ -12,7 +12,8 @@ local orderKey = 'gem_fan_club:ticket:order:' .. voucherId
 
 -- 3.脚本业务
 -- 3.1.判断库存是否充足 get stockKey
-if(tonumber(redis.call('get', stockKey)) <= 0) then
+local stock = redis.call('get', stockKey)
+if(stock == nil or tonumber(stock) <= 0) then
     -- 3.2.库存不足，返回1
     return 1
 end
