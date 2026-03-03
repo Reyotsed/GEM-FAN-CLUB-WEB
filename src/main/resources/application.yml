@@ -14,8 +14,6 @@ spring:
     properties:
       hibernate:
         format_sql: true
-        hbm2ddl:
-          auto: update
         jdbc:
           time_zone: GMT+8
           batch_size: 20

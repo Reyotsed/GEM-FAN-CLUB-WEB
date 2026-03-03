@@ -33,6 +33,10 @@ public class RateLimitService {
     private static final int MAX_REQUESTS_PER_WINDOW = 1000; // 每秒最多1000个请求
     private static final int MAX_USER_REQUESTS_PER_WINDOW = 3; // 每个用户每秒最多3个请求
 
+    // AI chat rate limit config
+    private static final long AI_WINDOW_SIZE = 60000; // 60s sliding window
+    private static final int AI_MAX_REQUESTS_PER_IP = 5; // max 5 AI requests per IP per 60s
+
     /**
      * 检查票务级别限流
      * @param ticketId 票务ID
@@ -158,6 +162,40 @@ public class RateLimitService {
         }
         
         return true;
+    }
+
+    /**
+     * AI chat rate limit: max 5 requests per 60s per IP
+     * @param clientIp client IP address
+     * @return true if allowed, false if rate limited
+     */
+    public boolean allowAiRequest(String clientIp) {
+        try {
+            String key = "rate_limit:ai:" + clientIp;
+            long currentTime = System.currentTimeMillis();
+
+            Long result = stringRedisTemplate.execute(
+                RATE_LIMIT_LUA,
+                Collections.singletonList(key),
+                String.valueOf(currentTime),
+                String.valueOf(AI_WINDOW_SIZE),
+                String.valueOf(AI_MAX_REQUESTS_PER_IP),
+                clientIp
+            );
+
+            if (result == null || result == 0) {
+                log.warn("AI rate limit triggered, IP: {}", clientIp);
+                return false;
+            }
+
+            log.debug("AI rate limit check passed, IP: {}, current count: {}", clientIp, result);
+            return true;
+
+        } catch (Exception e) {
+            log.error("AI rate limit check error, IP: {}", clientIp, e);
+            // Allow request on error to avoid blocking normal usage
+            return true;
+        }
     }
 
     /**
