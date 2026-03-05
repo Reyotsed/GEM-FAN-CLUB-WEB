@@ -1,6 +1,7 @@
 package com.example.gem_fan_club_web.controller;
 
 import com.example.gem_fan_club_web.dto.ResponseDTO;
+import com.example.gem_fan_club_web.dto.QuoteCardDTO;
 import com.example.gem_fan_club_web.model.quote.Quote;
 import com.example.gem_fan_club_web.model.quote.QuotePicture;
 import com.example.gem_fan_club_web.model.quote.QuoteComment;
@@ -44,6 +45,34 @@ public class QuoteController {
     public ResponseDTO getMoreQuotes(@RequestBody MoreQuotesRequest request) {
         List<Quote> quotes = quoteService.getMoreQuotes(request.getDisplayedIds(), request.getCount());
         return new ResponseDTO(200, "success", quotes);
+    }
+
+    /**
+     * 聚合接口：一次返回列表渲染所需的全部数据（语录 + 用户信息 + 图片路径 + 点赞状态）
+     * 前端只需 1 次请求即可拿到所有数据，取代原先的 N+1 次请求。
+     */
+    @PostMapping("/getMoreQuoteCards")
+    public ResponseDTO getMoreQuoteCards(@RequestBody MoreQuoteCardsRequest request) {
+        List<QuoteCardDTO> cards = quoteService.getMoreQuoteCards(
+                request.getDisplayedIds(),
+                request.getCount(),
+                request.getCurrentUserId()
+        );
+        return new ResponseDTO(200, "success", cards);
+    }
+
+    /**
+     * 聚合接口：获取单条语录完整详情
+     */
+    @GetMapping("/quoteCardDetail/{quoteId}")
+    public ResponseDTO getQuoteCardDetail(
+            @PathVariable Integer quoteId,
+            @RequestParam(value = "userId", required = false) String userId) {
+        QuoteCardDTO card = quoteService.getQuoteCardDetail(quoteId, userId);
+        if (card == null) {
+            return new ResponseDTO(404, "语录不存在", null);
+        }
+        return new ResponseDTO(200, "success", card);
     }
 
     @GetMapping("/quotePicture")
@@ -154,5 +183,12 @@ public class QuoteController {
     public static class MoreQuotesRequest {
         private List<Integer> displayedIds;
         private Integer count;
+    }
+
+    @Data
+    public static class MoreQuoteCardsRequest {
+        private List<Integer> displayedIds;
+        private Integer count;
+        private String currentUserId;
     }
 }

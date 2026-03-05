@@ -30,11 +30,17 @@ public class FileTools {
         String fileExtension = originalFilename.substring(originalFilename.lastIndexOf("."));
         String newFilename = UUID.randomUUID().toString() + fileExtension;
 
-//        System.out.println(newFilename);
         fullPath = Paths.get(fullPath, newFilename).toString();
         // 保存文件到本地
         File serverFile = new File(fullPath);
         file.transferTo(serverFile);
+
+        // 上传后自动压缩大图（宽度 > 1920 或体积 > 500KB 的图片）
+        try {
+            ImageCompressor.compressUploadedFile(serverFile);
+        } catch (Exception e) {
+            log.warn("图片压缩失败，保留原图: {}", newFilename, e);
+        }
 
         return newFilename;
     }

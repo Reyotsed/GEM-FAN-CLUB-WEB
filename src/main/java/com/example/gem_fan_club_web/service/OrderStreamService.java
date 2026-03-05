@@ -57,8 +57,6 @@ public class OrderStreamService {
             messageMap.put("userId", userId);
             messageMap.put("ticketId", ticketId);
             messageMap.put("createTime", LocalDateTime.now().toString());
-            // 订单状态等信息也应放入消息体
-            // messageMap.put("status", "0");
 
             var messageId = stringRedisTemplate.opsForStream().add(ORDER_STREAM_KEY, messageMap);
             log.info("订单消息发送成功, Stream: '{}', MessageId: {}, OrderId: {}", ORDER_STREAM_KEY, messageId, orderId);
@@ -170,7 +168,8 @@ public class OrderStreamService {
                     .createTime(parseDateTimeOrNow((String) value.get("createTime")))
                     .build();
 
-            orderRepository.save(order);
+            // orderRepository.save(order);
+            
             acknowledgeMessage(record.getId());
             log.info("订单持久化成功并已ACK。OrderId: {}", orderId);
             

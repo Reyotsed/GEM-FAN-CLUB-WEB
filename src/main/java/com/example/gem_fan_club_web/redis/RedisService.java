@@ -6,6 +6,7 @@ import com.example.gem_fan_club_web.redis.RedisUtils.QuotePictureListWrapper;
 import com.example.gem_fan_club_web.redis.RedisUtils.QuotePictureWrapper;
 import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -16,6 +17,9 @@ import java.util.concurrent.TimeUnit;
 public class RedisService {
     @Resource
     private RedisUtils redisUtil;
+
+    @Autowired
+    StringRedisTemplate stringRedisTemplate;
 
     public String setCheckCodeKey(String code){
         String checkCodeKey = UUID.randomUUID().toString();
@@ -60,7 +64,8 @@ public class RedisService {
     }
 
     public void cleanTicketOrderStream(){
-        redisUtil.delete(Constants.REDIS_TICKET_ORDER_STREAM);
+        // 清空Stream内容而不是删除Stream
+        stringRedisTemplate.opsForStream().delete(Constants.REDIS_TICKET_ORDER_STREAM, "*");
     }
 
     // QuotePicture缓存相关方法

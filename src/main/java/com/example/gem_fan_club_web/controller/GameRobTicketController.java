@@ -105,7 +105,7 @@ private RateLimitService rateLimitService;
     ) {
         redisService.cleanTicketStock(ticketId);
         redisService.cleanTicketOrder(ticketId);
-        redisService.cleanTicketOrderStream();
+//        redisService.cleanTicketOrderStream();
         return new ResponseDTO(200,"success","清除库存成功");
     }
 }

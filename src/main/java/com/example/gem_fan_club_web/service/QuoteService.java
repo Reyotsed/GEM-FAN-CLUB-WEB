@@ -1,11 +1,14 @@
 package com.example.gem_fan_club_web.service;
 
+import com.example.gem_fan_club_web.dto.QuoteCardDTO;
+import com.example.gem_fan_club_web.model.User;
 import com.example.gem_fan_club_web.model.quote.Quote;
 import com.example.gem_fan_club_web.model.quote.QuoteLike;
 import com.example.gem_fan_club_web.model.quote.QuotePicture;
 import com.example.gem_fan_club_web.model.quote.QuotePictureTag;
 import com.example.gem_fan_club_web.redis.RedisService;
 import com.example.gem_fan_club_web.redis.RedisUtils.QuotePictureListWrapper;
+import com.example.gem_fan_club_web.repository.UserRepository;
 import com.example.gem_fan_club_web.repository.quote.QuoteLikeRepository;
 import com.example.gem_fan_club_web.repository.quote.QuotePictureRepository;
 import com.example.gem_fan_club_web.repository.quote.QuotePictureTagRepository;
@@ -20,10 +23,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -34,6 +37,7 @@ public class QuoteService {
     private final QuotePictureTagRepository quotePictureTagRepository;
     private final QuotePictureRepository quotePictureInfoRepository;
     private final QuoteLikeRepository quoteLikeRepository;
+    private final UserRepository userRepository;
     private final FileTools fileTools;
     private final RedisService redisService;
     private final Executor asyncExecutor;
@@ -160,6 +164,95 @@ public class QuoteService {
 
     public Quote getQuoteById(Integer quoteId) {
         return quoteRepository.findById(quoteId).orElse(null);
+    }
+
+    /**
+     * 聚合接口：一次性获取多条语录的完整卡片数据（含用户信息、图片路径、点赞状态）
+     * 将原先前端 N+1 次请求压缩为后端一次 DB 批量查询。
+     */
+    public List<QuoteCardDTO> getMoreQuoteCards(List<Integer> displayedIds, Integer count, String currentUserId) {
+        Pageable pageable = PageRequest.of(0, count);
+        List<Quote> quotes;
+        if (displayedIds == null || displayedIds.isEmpty()) {
+            quotes = quoteRepository.findRandomQuotes(pageable);
+        } else {
+            quotes = quoteRepository.findRandomQuotesExcluding(displayedIds, pageable);
+        }
+
+        if (quotes.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 1. 批量收集所有需要查询的 userId
+        Set<String> userIds = quotes.stream().map(Quote::getUserId).collect(Collectors.toSet());
+        Map<String, User> userMap = new HashMap<>();
+        for (User u : userRepository.findAllById(userIds)) {
+            userMap.put(u.getUserId(), u);
+        }
+
+        // 2. 批量查询每条语录的图片路径
+        Map<Integer, List<String>> quotePictureMap = new HashMap<>();
+        for (Quote q : quotes) {
+            List<QuotePicture> pics = getPicturesByQuoteId(q.getQuoteId());
+            List<String> paths = pics.stream().map(QuotePicture::getFilePath).collect(Collectors.toList());
+            quotePictureMap.put(q.getQuoteId(), paths);
+        }
+
+        // 3. 批量查询当前用户的点赞状态
+        Set<Integer> likedQuoteIds = new HashSet<>();
+        if (currentUserId != null && !currentUserId.isEmpty()) {
+            for (Quote q : quotes) {
+                if (quoteLikeRepository.findByQuoteIdAndUserId(q.getQuoteId(), currentUserId) != null) {
+                    likedQuoteIds.add(q.getQuoteId());
+                }
+            }
+        }
+
+        // 4. 组装 DTO
+        List<QuoteCardDTO> result = new ArrayList<>();
+        for (Quote q : quotes) {
+            QuoteCardDTO dto = new QuoteCardDTO();
+            dto.setQuoteInfo(q);
+
+            User user = userMap.get(q.getUserId());
+            dto.setUserNickName(user != null ? user.getNickName() : "未知用户");
+            dto.setUserAvatarPath(user != null ? user.getAvatar() : "");
+
+            dto.setPicturePaths(quotePictureMap.getOrDefault(q.getQuoteId(), Collections.emptyList()));
+            dto.setLiked(likedQuoteIds.contains(q.getQuoteId()));
+
+            result.add(dto);
+        }
+        return result;
+    }
+
+    /**
+     * 聚合接口：获取单条语录的完整详情（含用户信息、全部图片路径、点赞状态）
+     */
+    public QuoteCardDTO getQuoteCardDetail(Integer quoteId, String currentUserId) {
+        Quote quote = quoteRepository.findById(quoteId).orElse(null);
+        if (quote == null) return null;
+
+        QuoteCardDTO dto = new QuoteCardDTO();
+        dto.setQuoteInfo(quote);
+
+        // 用户信息
+        User user = userRepository.findById(quote.getUserId()).orElse(null);
+        dto.setUserNickName(user != null ? user.getNickName() : "未知用户");
+        dto.setUserAvatarPath(user != null ? user.getAvatar() : "");
+
+        // 图片路径
+        List<QuotePicture> pics = getPicturesByQuoteId(quoteId);
+        dto.setPicturePaths(pics.stream().map(QuotePicture::getFilePath).collect(Collectors.toList()));
+
+        // 点赞状态
+        if (currentUserId != null && !currentUserId.isEmpty()) {
+            dto.setLiked(quoteLikeRepository.findByQuoteIdAndUserId(quoteId, currentUserId) != null);
+        } else {
+            dto.setLiked(false);
+        }
+
+        return dto;
     }
 
     /**
