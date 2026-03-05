@@ -1,196 +1,159 @@
-# GEM Fan Club Web Application
+# 🌐 GEM Fan Club - 后端服务
 
-[![Java](https://img.shields.io/badge/Java-17-orange.svg)](https://openjdk.java.net/)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.3-green.svg)](https://spring.io/projects/spring-boot)
-[![Maven](https://img.shields.io/badge/Maven-3.8+-blue.svg)](https://maven.apache.org/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+<div align="center">
 
-## 📖 项目简介
+![Java](https://img.shields.io/badge/Java-17-ED8B00.svg?logo=openjdk)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.3-6DB33F.svg?logo=springboot)
+![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1.svg?logo=mysql)
+![Redis](https://img.shields.io/badge/Redis-6.0+-DC382D.svg?logo=redis)
+![License](https://img.shields.io/badge/License-MIT-blue.svg)
 
-GEM Fan Club Web Application 是一个基于Spring Boot的Web应用程序，为GEM粉丝俱乐部提供全面的在线服务。该应用集成了用户管理、演唱会信息、歌曲管理、AI聊天、限流控制等多项功能。
+基于 Spring Boot 的粉丝俱乐部后端服务，提供用户管理、歌曲管理、AI 聊天代理、游戏排行、秒杀限流等功能。
 
-## ✨ 主要功能
+</div>
 
-### 🎵 音乐相关
-- **歌曲管理**: 完整的歌曲CRUD操作，支持歌曲信息维护
-- **游戏歌曲**: 互动式歌曲游戏功能
-- **歌词接龙排行榜**: 用户参与的歌词接龙游戏及排行榜系统
+---
 
-### 🎭 演唱会管理
-- **演唱会信息**: 演唱会详情、时间、地点等信息管理
-- **票务系统**: 演唱会票务相关功能
+## ✨ 功能模块
 
-### 👥 用户系统
-- **用户管理**: 用户注册、登录、信息管理
-- **账户系统**: 完整的账户管理功能
-- **用户互动**: 用户之间的互动功能
-
-### 🤖 AI服务
-- **AI聊天**: 集成AI聊天服务，提供智能对话功能
-- **智能回复**: 基于AI的智能回复系统
-
-### 🎮 游戏功能
-- **抢票游戏**: 互动式抢票游戏系统
-- **游戏排行榜**: 游戏成绩统计和排行榜
-
-### 💬 社区功能
-- **语录系统**: 用户分享语录、评论功能
-- **图片管理**: 支持语录配图功能
-
-### 🚀 技术特性
-- **限流控制**: Redis + Lua脚本实现的智能限流系统
-- **秒杀系统**: 高性能秒杀功能支持
-- **异步处理**: 异步任务处理，提升系统性能
-- **缓存优化**: Redis缓存优化，提升响应速度
+| 模块           | Controller                         | 说明                             |
+| -------------- | ---------------------------------- | -------------------------------- |
+| 🤖 **AI 聊天**  | `AIController`                     | 转发请求至 RAG 服务，IP 限流保护 |
+| 👤 **账户**     | `AccountController`                | 注册、登录、验证码、会话管理     |
+| 👥 **用户**     | `UserController`                   | 用户信息查询与管理               |
+| 🎵 **歌曲**     | `SongController`                   | 歌曲 CRUD                        |
+| 🎮 **猜歌游戏** | `GameSongController`               | 游戏歌曲数据接口                 |
+| 🎫 **抢票游戏** | `GameRobTicketController`          | 秒杀抢票 + Redis 队列            |
+| 📝 **歌词接龙** | `LyricsChainLeaderboardController` | 排行榜 CRUD                      |
+| 🎤 **演唱会**   | `ConcertController`                | 演唱会信息查询                   |
+| 💬 **语录**     | `QuoteController`                  | 语录发布、评论、点赞、图片标签   |
+| 🖼️ **图片**     | `ImageController`                  | 图片上传与管理                   |
 
 ## 🛠️ 技术栈
 
-### 后端技术
-- **Java 17**: 使用最新的LTS版本
-- **Spring Boot 3.4.3**: 现代化的Spring框架
-- **Spring Data JPA**: 数据持久化
-- **Spring Web**: Web服务支持
-- **Spring Data Redis**: Redis缓存支持
-- **Spring Boot Actuator**: 应用监控
-
-### 数据库
-- **MySQL**: 主数据库
-- **Redis**: 缓存和限流控制
-
-### 工具库
-- **Lombok**: 简化Java代码
-- **Hutool**: 实用工具库
-- **Apache Commons Lang3**: 通用工具库
-- **Easy Captcha**: 验证码生成
-
-### 配置管理
-- **Maven**: 项目构建和依赖管理
-- **YAML**: 配置文件格式
-
-## 🚀 快速开始
-
-### 环境要求
-- Java 17+
-- Maven 3.8+
-- MySQL 8.0+
-- Redis 6.0+
-
-### 安装步骤
-
-1. **克隆项目**
-```bash
-git clone https://github.com/Reyotsed/GEM-FAN-CLUB-WEB.git
-cd GEM-FAN-CLUB-WEB
-```
-
-2. **配置数据库**
-   - 创建MySQL数据库
-   - 修改 `src/main/resources/application.yml` 中的数据库配置
-
-3. **配置Redis**
-   - 确保Redis服务运行
-   - 修改Redis连接配置
-
-4. **构建项目**
-```bash
-mvn clean install
-```
-
-5. **运行应用**
-```bash
-mvn spring-boot:run
-```
-
-或者使用打包后的jar文件：
-```bash
-java -jar target/gem_fan_club_web-0.0.1-SNAPSHOT.jar
-```
-
-### 配置说明
-
-主要配置文件位于 `src/main/resources/application.yml`，包含：
-- 数据库连接配置
-- Redis连接配置
-- 应用端口配置
-- 其他业务配置
+| 类别    | 技术                   | 说明                             |
+| ------- | ---------------------- | -------------------------------- |
+| 语言    | Java 17                | LTS 版本                         |
+| 框架    | Spring Boot 3.4.3      | Web + JPA + Redis + Actuator     |
+| 模板    | Thymeleaf              | 服务端渲染（部分页面）           |
+| ORM     | Spring Data JPA        | 数据持久化                       |
+| 缓存    | Spring Data Redis      | 缓存 + 限流 + 秒杀队列           |
+| 数据库  | MySQL 8.0              | 主数据库                         |
+| 限流    | Redis + Lua 脚本       | `RateLimitService` 高性能限流    |
+| 唯一 ID | 雪花算法               | `SnowflakeConfig` 分布式 ID 生成 |
+| 异步    | `@Async` + 线程池      | `AsyncConfig` 异步任务处理       |
+| 工具库  | Hutool / Commons Lang3 | 通用工具                         |
+| 验证码  | Easy Captcha           | 登录验证码生成                   |
+| 监控    | Spring Actuator        | 健康检查 + 指标                  |
 
 ## 📁 项目结构
 
 ```
 src/main/java/com/example/gem_fan_club_web/
-├── config/          # 配置类
-│   ├── AsyncConfig.java      # 异步配置
-│   ├── RedisConfig.java      # Redis配置
-│   ├── RestConfig.java       # REST配置
-│   └── SnowflakeConfig.java  # 雪花算法配置
-├── controller/      # 控制器层
-│   ├── AIController.java     # AI服务控制器
-│   ├── UserController.java   # 用户控制器
-│   ├── SongController.java   # 歌曲控制器
-│   └── ...                  # 其他控制器
-├── service/         # 服务层
-│   ├── AIService.java        # AI服务
-│   ├── RateLimitService.java # 限流服务
-│   └── ...                  # 其他服务
-├── model/           # 数据模型
-├── dto/             # 数据传输对象
-├── repository/      # 数据访问层
-├── redis/           # Redis相关
-├── utils/           # 工具类
-└── constants/       # 常量定义
+├── GemFanClubWebApplication.java   # Spring Boot 启动类
+├── config/
+│   ├── AsyncConfig.java            # 异步线程池配置
+│   ├── CorsConfig.java             # CORS 跨域配置
+│   ├── RedisConfig.java            # Redis 序列化配置
+│   ├── RestConfig.java             # RestTemplate 配置（含超时）
+│   └── SnowflakeConfig.java        # 雪花算法 ID 生成器
+├── constants/
+│   └── Constants.java              # 全局常量
+├── controller/                     # 控制器层（10 个）
+│   ├── AIController.java
+│   ├── AccountController.java
+│   ├── UserController.java
+│   ├── SongController.java
+│   ├── ConcertController.java
+│   ├── QuoteController.java
+│   ├── ImageController.java
+│   ├── GameSongController.java
+│   ├── GameRobTicketController.java
+│   └── LyricsChainLeaderboardController.java
+├── dto/                            # 数据传输对象
+│   ├── AiChatRequest / AiResponse
+│   ├── ChatMessage / ChatRequest
+│   └── ResponseDTO
+├── model/                          # JPA 实体
+│   ├── User / Song / Concert / Order
+│   ├── GameSong / LyricsChainLeaderboard
+│   └── quote/ (Quote, QuoteComment, QuoteLike, QuotePicture, QuotePictureTag)
+├── repository/                     # Spring Data JPA 仓库
+├── redis/
+│   ├── RedisService.java           # Redis 业务封装
+│   └── RedisUtils.java             # Redis 工具类
+├── service/                        # 服务层（10 个）
+│   ├── AIService.java              # AI 聊天代理
+│   ├── RateLimitService.java       # Redis + Lua 限流
+│   ├── OrderStreamService.java     # 秒杀抢票服务
+│   ├── QuoteService.java           # 语录业务
+│   ├── QuoteCommentService.java    # 评论业务
+│   └── UserService / SongService / ConcertService / GameSongService / ...
+└── utils/
+    ├── AssertTools.java            # 断言工具
+    ├── FileTools.java              # 文件工具
+    └── StringTools.java            # 字符串工具
 ```
 
-## 🔧 核心功能实现
+## 🚀 快速开始
 
-### 限流系统
-使用Redis + Lua脚本实现高性能限流控制：
-- 支持多种限流策略
-- 高性能Lua脚本执行
-- 灵活的限流规则配置
+### 环境要求
 
-### AI聊天服务
-集成AI服务，提供智能对话功能：
-- 支持多种AI模型
-- 智能回复生成
-- 对话历史管理
+- Java 17+
+- Maven 3.8+
+- MySQL 8.0+
+- Redis 6.0+
 
-### 秒杀系统
-高性能秒杀功能支持：
-- Redis队列优化
-- 库存预扣减
-- 防超卖机制
+### 安装与运行
 
-## 📊 性能优化
+```bash
+# 克隆项目
+git clone https://github.com/Reyotsed/GEM-FAN-CLUB-WEB.git
+cd GEM-FAN-CLUB-WEB
 
-- **Redis缓存**: 热点数据缓存，提升响应速度
-- **异步处理**: 非阻塞异步任务处理
-- **连接池**: 数据库和Redis连接池优化
-- **限流控制**: 防止系统过载，保护服务稳定性
+# 配置数据库和 Redis
+# 编辑 src/main/resources/application.yml
 
-## 🤝 贡献指南
+# 构建
+mvn clean install
 
-欢迎提交Issue和Pull Request来帮助改进项目！
+# 运行
+mvn spring-boot:run
+# 或
+java -jar target/gem_fan_club_web-0.0.1-SNAPSHOT.jar
+```
 
-### 贡献步骤
-1. Fork 项目
-2. 创建功能分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 创建Pull Request
+### 关键配置 (`application.yml`)
+
+```yaml
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/gem_fan_club
+    username: your_username
+    password: your_password
+  data:
+    redis:
+      host: localhost
+      port: 6379
+```
+
+## 🔗 关联项目
+
+| 项目                 | 说明            | 仓库                                                   |
+| -------------------- | --------------- | ------------------------------------------------------ |
+| **GEM-FAN-CLUB-VUE** | Vue 3 前端应用  | [GitHub](https://github.com/Reyotsed/GEM-FAN-CLUB-VUE) |
+| **GEM_FAN_CLUB_RAG** | RAG AI 聊天服务 | [GitHub](https://github.com/Reyotsed/GEM_FAN_CLUB_RAG) |
 
 ## 📄 许可证
 
-本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情
-
-## 📞 联系方式
-
-- 项目地址: [https://github.com/Reyotsed/GEM-FAN-CLUB-WEB](https://github.com/Reyotsed/GEM-FAN-CLUB-WEB)
-- 问题反馈: [Issues](https://github.com/Reyotsed/GEM-FAN-CLUB-WEB/issues)
-
-## 🙏 致谢
-
-感谢所有为这个项目做出贡献的开发者和用户！
+MIT License
 
 ---
 
-⭐ 如果这个项目对你有帮助，请给我们一个星标！
+<div align="center">
+
+⭐ **如果这个项目对你有帮助，请给一个 Star！**
+
+Made with ❤️ for G.E.M. fans
+
+</div>
