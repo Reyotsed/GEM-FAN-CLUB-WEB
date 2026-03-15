@@ -26,4 +26,12 @@ public class Constants {
     public static final String TOKEN_HEADER = "Authorization";
 
     public static final String TOKEN_BEARER = "Bearer ";
+
+    // ========== 流量统计相关 ==========
+    public static final String REDIS_STATS_PREFIX = REDIS_KEY_PREFIX + "stats:";
+    public static final String REDIS_STATS_PV_DAILY = REDIS_STATS_PREFIX + "pv:daily:";
+    public static final String REDIS_STATS_PV_TOTAL = REDIS_STATS_PREFIX + "pv:total:";
+    public static final String REDIS_STATS_EVENT_DAILY = REDIS_STATS_PREFIX + "event:daily:";
+    public static final String REDIS_STATS_EVENT_TOTAL = REDIS_STATS_PREFIX + "event:total:";
+    public static final String REDIS_STATS_UV_DAILY = REDIS_STATS_PREFIX + "uv:daily:";
 }

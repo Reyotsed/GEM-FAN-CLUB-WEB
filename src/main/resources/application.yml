@@ -56,6 +56,7 @@ file:
 ai:
   service:
     url: http://localhost:8000/chat_gem
+    base-url: http://localhost:8000
 
 # 雪花算法配置
 snowflake:

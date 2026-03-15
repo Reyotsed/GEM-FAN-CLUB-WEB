@@ -76,6 +76,31 @@ public class RedisUtils {
         return (String) stringRedisTemplate.opsForHash().get(key, hashKey);
     }
 
+    // 原子自增（用于计数器统计）
+    public Long increment(String key) {
+        return stringRedisTemplate.opsForValue().increment(key);
+    }
+
+    // 原子自增指定步长
+    public Long increment(String key, long delta) {
+        return stringRedisTemplate.opsForValue().increment(key, delta);
+    }
+
+    // 模式匹配查找 keys
+    public java.util.Set<String> keys(String pattern) {
+        return stringRedisTemplate.keys(pattern);
+    }
+
+    // 向 HyperLogLog 添加元素（用于 UV 统计）
+    public Long pfAdd(String key, String... values) {
+        return stringRedisTemplate.opsForHyperLogLog().add(key, values);
+    }
+
+    // 获取 HyperLogLog 基数估算值
+    public Long pfCount(String key) {
+        return stringRedisTemplate.opsForHyperLogLog().size(key);
+    }
+
     // 设置QuotePicture对象缓存（逻辑过期）
     public void setQuotePictureWithLogicExpire(String key, QuotePicture quotePicture, long expireSeconds) {
         try {
